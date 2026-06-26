@@ -28,5 +28,6 @@ class AnalyzeTicketRequest(BaseModel):
     channel: str | None = None
     user_type: str | None = None
     campaign_context: str | None = None
-    transaction_history: list[Transaction] = Field(default_factory=list)
+    # Accept a missing field or an explicit null; the analyzer treats both as empty.
+    transaction_history: list[Transaction] | None = Field(default=None)
     metadata: dict | None = None
