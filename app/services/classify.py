@@ -30,7 +30,9 @@ def _severity(case_type: CaseType, verdict: EvidenceVerdict) -> Severity:
         return Severity.high
     if case_type == CaseType.wrong_transfer:
         # Confirmed wrong transfer is high; unconfirmed/contradicted is medium.
-        return Severity.high if verdict == EvidenceVerdict.consistent else Severity.medium
+        if verdict == EvidenceVerdict.consistent:
+            return Severity.high
+        return Severity.medium
     if case_type == CaseType.merchant_settlement_delay:
         return Severity.medium
     return Severity.low  # refund_request, other
