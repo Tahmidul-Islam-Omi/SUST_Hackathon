@@ -67,8 +67,10 @@ How a request is processed (`app/services/`):
    recipients plausibly match — it does not guess.
 3. **`classify.py`** — maps `case_type` to the owning `department`, assigns
    `severity`, and decides `human_review_required`.
-4. **`safety.py`** — produces the `agent_summary`, `recommended_next_action`, and
-   a guardrailed `customer_reply`, then runs a final safety filter over the reply.
+4. **`replies.py` + `safety.py`** — `replies.py` holds the per-case, bilingual
+   text templates and builds the `agent_summary` (content); `safety.py` composes
+   them into `agent_summary`, `recommended_next_action`, and `customer_reply`,
+   then runs a final `enforce_safety()` filter over the reply (policy).
 
 An **optional** LLM layer (`app/services/llm.py`) can polish the wording of the
 summary and customer reply. It is **off by default**, and the service scores
@@ -102,11 +104,19 @@ relying on a model's good behaviour. The `customer_reply`:
   attempts do not override the service's rules).
 - Responds in the customer's language (Bangla in → Bangla out).
 
-A final `enforce_safety()` filter inspects the outgoing reply; if any banned
-pattern slips through, the reply is replaced with a guaranteed-safe fallback.
+Replies are built from hand-written, vetted templates per `case_type` (English
+and Bangla) — there is no free-form generation, so there is no place for unsafe
+text to originate. A final `enforce_safety()` filter still scans the outgoing
+reply (credential-ask, refund-promise, and third-party-redirect patterns, with
+negation handling so a "do not share your PIN" warning is not mis-flagged); if
+anything trips, the reply is replaced with a guaranteed-safe fallback in the
+right language. The complaint text is never echoed into the reply, which neutralises
+prompt-injection attempts.
 
-Ambiguous evidence, disputes, fraud reports, and high-value cases set
-`human_review_required: true`.
+The `agent_summary` states the matched transaction and its amount plus the
+evidence verdict (e.g. *"Identified transaction TXN-9101 (5,000 BDT). Evidence
+verdict: consistent."*) for fast agent triage. Ambiguous evidence, disputes,
+fraud reports, and high-value cases set `human_review_required: true`.
 
 ---
 
@@ -202,9 +212,20 @@ No real secrets are committed to the repository.
 ## Testing
 
 ```bash
-pytest -q                    # schema-contract tests (health, fields, enums, malformed input)
+pytest -q                    # full suite: contract + reliability + safety (28 tests)
 python -m tests.run_samples  # reasoning accuracy vs the 10 public sample cases (no server needed)
 ```
+
+The pytest suite covers three areas:
+
+- **Contract** (`test_samples.py`) — `/health`, required fields, exact enum
+  values, and malformed input returning a controlled 4xx.
+- **Reliability** (`test_reliability.py`) — empty / null / missing fields,
+  malformed JSON, oversized and Bangla input, and prompt-injection text: the
+  service must never return 5xx or crash.
+- **Safety** (`test_safety.py`) — `customer_reply` never asks for credentials or
+  promises a refund, prompt-injection is ignored, Bangla complaints get a Bangla
+  reply, and `agent_summary` quotes the matched transaction's amount.
 
 A live-HTTP smoke tester is also provided:
 
@@ -260,9 +281,9 @@ Response:
   "case_type": "wrong_transfer",
   "severity": "high",
   "department": "dispute_resolution",
-  "agent_summary": "Customer reports sending 5000 BDT via TXN-9101 to a number they now believe was wrong. Recipient unresponsive.",
-  "recommended_next_action": "Verify TXN-9101 with the customer and initiate the wrong-transfer dispute workflow.",
-  "customer_reply": "We have noted your concern about transaction TXN-9101. Our dispute team will review the case and contact you through official support channels. Please do not share your PIN or OTP with anyone.",
+  "agent_summary": "Customer reports a wrong transfer. Identified transaction TXN-9101 (5,000 BDT). Evidence verdict: consistent.",
+  "recommended_next_action": "Verify transaction TXN-9101 with the customer and initiate the wrong-transfer dispute workflow per policy.",
+  "customer_reply": "We have noted your concern about transaction TXN-9101. Our dispute resolution team will review the case and contact you through official support channels. Please do not share your PIN or OTP with anyone.",
   "human_review_required": true,
   "confidence": 0.9,
   "reason_codes": ["wrong_transfer", "transaction_match"]
@@ -279,9 +300,11 @@ app/
   core/config.py       # environment configuration
   api/routes/          # health.py, analyze.py
   schemas/             # enums.py, request.py, response.py
-  services/            # analyzer.py (orchestrator) + signals / reasoning / classify / safety / llm
+  services/            # analyzer.py (orchestrator) + signals / reasoning / classify / replies / safety / llm
 tests/
   test_samples.py      # schema-contract tests
+  test_reliability.py  # edge-case / malformed-input robustness
+  test_safety.py       # customer_reply guardrail tests
   run_samples.py       # reasoning accuracy tracker
 test.sh                # live-HTTP smoke tester
 Dockerfile
@@ -289,8 +312,9 @@ requirements.txt
 .env.example
 ```
 
-Request flow: `routes/analyze.py` → `services/analyzer.py` →
-`signals` → `reasoning` → `classify` → `safety` → validated response.
+Request flow: `routes/analyze.py` → `services/analyzer.py` → `signals` →
+`reasoning` → `classify` → `safety` (composes `replies` templates, then
+`enforce_safety`) → validated response.
 
 ---
 
