@@ -49,10 +49,12 @@ one structured response out.
 
 ## AI approach
 
-The reasoning is **rule-based and deterministic**. The investigation logic
-(transaction matching, evidence verdict, classification, routing, escalation) is
-implemented in plain Python, so every decision is explainable, fast (well under
-the 30-second limit), and free of external API dependencies or cost.
+**This submission uses no LLM and makes no external AI/API calls — the entire
+pipeline is rule-based and deterministic.** The investigation logic (transaction
+matching, evidence verdict, classification, routing, escalation) and every piece
+of generated text are implemented in plain Python. This keeps every decision
+explainable, fast (well under the 30-second limit), free, and fully reproducible,
+with no API keys, no cost, and no network dependency at request time.
 
 How a request is processed (`app/services/`):
 
@@ -72,10 +74,10 @@ How a request is processed (`app/services/`):
    them into `agent_summary`, `recommended_next_action`, and `customer_reply`,
    then runs a final `enforce_safety()` filter over the reply (policy).
 
-An **optional** LLM layer (`app/services/llm.py`) can polish the wording of the
-summary and customer reply. It is **off by default**, and the service scores
-fully without it. If enabled but unavailable (no key, error, or slow response),
-the code falls back to the rule-based text and re-applies the safety filter.
+**No LLM is used in this submission.** The codebase includes a disabled
+extension hook (`app/services/llm.py`) that *could* optionally refine wording in
+future, but it is switched off, needs no API key, and is never called — every
+response is produced entirely by the rule-based pipeline above.
 
 ### Evidence reasoning highlights
 
@@ -246,10 +248,13 @@ The service reproduces the expected decision fields
 
 ## MODELS
 
-| Model | Where it runs | Why |
-| ----- | ------------- | --- |
-| None (rule-based logic) | In-process, CPU | The investigation, classification, routing, and safety guardrails are deterministic Python. No model is required to produce correct, schema-valid, safe responses, which keeps the service fast, free, and fully reproducible. |
-| Optional external LLM (disabled by default) | Provider API, via `app/services/llm.py` | Available only to polish the wording of `agent_summary` / `customer_reply`. Activated through `LLM_ENABLED` + a provider key. Falls back to rule-based text on any failure, and all output is re-checked by the safety filter. |
+**No models are used. This is a 100% rule-based solution** — no LLM, no local
+model, no external AI/API calls, no GPU, no API keys.
+
+| Model | Used? | Where it runs | Notes |
+| ----- | ----- | ------------- | ----- |
+| None — rule-based Python | **Yes (only this)** | In-process, CPU | The investigation, classification, routing, text generation, and safety guardrails are deterministic Python. This produces correct, schema-valid, safe responses while staying fast, free, and fully reproducible. |
+| External / local LLM | **No** | — | A disabled hook exists at `app/services/llm.py` for a possible future option, but it is off, needs no key, and is never invoked in this submission. |
 
 ---
 
@@ -337,7 +342,7 @@ Request flow: `routes/analyze.py` → `services/analyzer.py` → `signals` →
   amount and recipient patterns are.
 - Keyword-based `case_type` detection covers the common phrasings in English and
   Bangla; highly unusual phrasings may fall back to `other`.
-- The optional LLM layer is a drafting aid only and is disabled by default.
+- No LLM is used; the `llm.py` hook is disabled and never called in this submission.
 
 ---
 
