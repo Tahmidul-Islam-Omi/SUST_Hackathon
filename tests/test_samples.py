@@ -1,12 +1,11 @@
-"""Schema-validity tests — green right now, even with stub logic.
+"""Schema-contract tests.
 
 Run: pytest -q
 
-These confirm the API CONTRACT (Phase 2): /health works, every sample input
-returns 200, ticket_id is echoed, and all required output fields are present
-with valid enum values. They do NOT check reasoning correctness — see
-tests/run_samples.py for the reasoning-accuracy progress tracker that Person B
-drives to green during Phase 3.
+These confirm the API contract: /health works, every sample input returns 200,
+ticket_id is echoed, and all required output fields are present with valid enum
+values. They do not check reasoning correctness — see tests/run_samples.py for
+the reasoning-accuracy tracker.
 """
 
 import json

@@ -1,11 +1,10 @@
-"""Reasoning-accuracy progress tracker.
+"""Reasoning-accuracy tracker.
 
 Run: python -m tests.run_samples
 
-Hits every sample case and compares the KEY decision fields against the
-expected_output, printing a PASS/FAIL table. With stub logic most rows FAIL —
-that is expected. Person B's Phase 3/4 goal is to turn these green. This is a
-dev tool, not a pytest test (the hidden judge set differs from these samples).
+Hits every sample case and compares the key decision fields against the
+expected_output, printing a PASS/FAIL table and a final tally. This is a dev
+tool, not a pytest test (the hidden judge set differs from these samples).
 """
 
 import json

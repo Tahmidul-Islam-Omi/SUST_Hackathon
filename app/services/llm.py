@@ -16,6 +16,6 @@ def draft_reply(prompt: str) -> str | None:
     """Return polished text, or None to signal 'use the rule-based fallback'."""
     if not is_available():
         return None
-    # TODO: call provider SDK with a short timeout, catch all errors and
-    # return None on failure.
+    # If implemented later: call the provider SDK with a short timeout, catch all
+    # errors, and return None on failure. Disabled and unused in this submission.
     return None

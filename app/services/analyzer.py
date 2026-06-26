@@ -19,13 +19,13 @@ def analyze_ticket(request: AnalyzeTicketRequest) -> AnalyzeTicketResponse:
     # Detect case_type once so reasoning and classify can't disagree.
     case_type = signals.detect_case_type(request.complaint, transactions)
 
-    # Stage 1 — evidence reasoning (Phase 3).
+    # Stage 1 — evidence reasoning.
     investigation = reasoning.investigate(request.complaint, transactions, case_type)
 
-    # Stage 2 — classification & routing (Phase 3).
+    # Stage 2 — classification & routing.
     classification = classify.classify(case_type, transactions, investigation)
 
-    # Stage 3 — safe, agent-ready text (Phase 4).
+    # Stage 3 — safe, agent-ready text.
     replies = safety.build_replies(request, investigation, classification)
 
     return AnalyzeTicketResponse(
