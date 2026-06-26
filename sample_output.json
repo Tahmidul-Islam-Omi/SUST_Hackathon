@@ -36,9 +36,9 @@
     "case_type": "wrong_transfer",
     "severity": "high",
     "department": "dispute_resolution",
-    "agent_summary": "Ticket received and queued for review.",
-    "recommended_next_action": "Review the ticket details and follow the appropriate workflow.",
-    "customer_reply": "Thank you for reaching out. Our team will review your case and contact you through official support channels. Please do not share your PIN or OTP with anyone.",
+    "agent_summary": "Customer reports a wrong transfer. Identified transaction TXN-9101 (5,000 BDT). Evidence verdict: consistent.",
+    "recommended_next_action": "Verify transaction TXN-9101 with the customer and initiate the wrong-transfer dispute workflow per policy.",
+    "customer_reply": "We have noted your concern about transaction TXN-9101. Our dispute resolution team will review the case and contact you through official support channels. Please do not share your PIN or OTP with anyone.",
     "human_review_required": true,
     "confidence": 0.9,
     "reason_codes": [
