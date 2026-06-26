@@ -59,7 +59,11 @@ def detect_language(text: str, declared: str | None = None) -> str:
 
 
 def _has(text: str, *needles: str) -> bool:
-    return any(n in text for n in needles)
+    """True if any of the given words/phrases appears in the text."""
+    for needle in needles:
+        if needle in text:
+            return True
+    return False
 
 
 def detect_case_type(complaint: str, transactions: list[Transaction] | None = None) -> CaseType:

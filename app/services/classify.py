@@ -7,7 +7,7 @@ from __future__ import annotations
 from app.schemas.enums import CaseType, Department, EvidenceVerdict, Severity
 from app.schemas.request import Transaction
 
-# case_type → owning department (Section 7.2 of the problem statement).
+# case_type → owning department
 _DEPARTMENT: dict[CaseType, Department] = {
     CaseType.wrong_transfer: Department.dispute_resolution,
     CaseType.payment_failed: Department.payments_ops,
@@ -37,7 +37,12 @@ def _severity(case_type: CaseType, verdict: EvidenceVerdict) -> Severity:
 
 
 def _max_amount(transactions: list[Transaction]) -> float:
-    return max((t.amount or 0) for t in transactions) if transactions else 0
+    highest = 0.0
+    for txn in transactions:
+        amount = txn.amount or 0
+        if amount > highest:
+            highest = amount
+    return highest
 
 
 def _human_review(
