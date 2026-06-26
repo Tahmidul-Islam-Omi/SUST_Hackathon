@@ -30,36 +30,46 @@ SAFE_FALLBACK_REPLY_BN = (
 
 # Words/phrases for the credential-ask detector (English + Bangla).
 _SECRET_WORDS = ("pin", "otp", "password", "cvv", "card number", "ওটিপি", "পিন", "পাসওয়ার্ড")
-_ASK_VERBS = ("share", "send", "provide", "give", "enter", "tell", "type", "শেয়ার", "দিন", "পাঠান")
+# Words that signal the text is asking the customer to hand over a secret.
+_ASK_VERBS = (
+    "share", "send", "provide", "give", "enter", "tell", "type", "reveal", "disclose",
+    "submit", "forward", "verify", "confirm", "required", "needed", "শেয়ার", "দিন", "পাঠান",
+)
 _NEGATIONS = ("not", "never", "n't", "cannot", "না")
 
 _SENTENCE_SPLIT = re.compile(r"[.!?।]")
 
+
+def _compile_all(patterns: tuple[str, ...]) -> list[re.Pattern[str]]:
+    compiled = []
+    for pattern in patterns:
+        compiled.append(re.compile(pattern))
+    return compiled
+
+
 # Unauthorized-promise patterns (refund / reversal / account unblock).
-_PROMISE_PATTERNS = [
-    re.compile(p)
-    for p in (
-        r"\bwe (will|shall) refund\b",
+_PROMISE_PATTERNS = _compile_all(
+    (
+        r"\bwe (will|shall|'ll) (refund|reverse|compensate)\b",
         r"\bwe are refunding\b",
-        r"\byou (will|'ll) be refunded\b",
+        r"\byou (will|'ll) be (refunded|reversed|compensated|paid back)\b",
         r"\bbe refunded\b",
         r"\brefund (has been|is|will be) (approved|processed|confirmed|issued|completed)\b",
         r"\bguaranteed refund\b",
         r"\bwe (will|have) (reverse|reversed)\b",
         r"\byour account (has been|is|will be) (unblocked|restored|unlocked)\b",
     )
-]
+)
 
 # Patterns that direct the customer outside official channels.
-_REDIRECT_PATTERNS = [
-    re.compile(p)
-    for p in (
+_REDIRECT_PATTERNS = _compile_all(
+    (
         r"call (this|that|the following) number",
         r"\bwhatsapp\b",
         r"call (us )?(at|on) \+?\d",
         r"\bdial\b \+?\d",
     )
-]
+)
 
 
 def build_replies(
@@ -68,17 +78,31 @@ def build_replies(
     classification: dict,
 ) -> dict:
     language = signals.detect_language(request.complaint, request.language)
+    relevant_id = investigation["relevant_transaction_id"]
+    transactions = request.transaction_history or []
+    relevant_amount = _amount_of(relevant_id, transactions)
 
     drafted = replies.compose(
         classification["case_type"],
         investigation["evidence_verdict"],
-        investigation["relevant_transaction_id"],
+        relevant_id,
+        relevant_amount,
         language,
     )
 
     # The customer reply is the only customer-facing field, so it is filtered.
     drafted["customer_reply"] = enforce_safety(drafted["customer_reply"], language)
     return drafted
+
+
+def _amount_of(transaction_id: str | None, transactions: list) -> float | None:
+    """Amount of the transaction with this id (None if not found)."""
+    if not transaction_id:
+        return None
+    for txn in transactions:
+        if txn.transaction_id == transaction_id:
+            return txn.amount
+    return None
 
 
 def enforce_safety(text: str, language: str = "en") -> str:

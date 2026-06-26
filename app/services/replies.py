@@ -4,9 +4,11 @@
   - agent_summary and recommended_next_action are always English (agent-facing).
   - customer_reply mirrors the customer's language (English or Bangla).
 
-Templates may contain a single `{ref}` placeholder, filled with a human-readable
-reference to the matched transaction, or a neutral phrase when none was found.
-The safety filter in `safety.py` is applied to the customer_reply afterwards.
+The agent_summary is assembled from a per-case lead sentence plus a factual
+clause naming the matched transaction (with its amount) and the evidence verdict.
+customer_reply / recommended_next_action come from hand-written templates that may
+use a single `{ref}` placeholder. The safety filter in `safety.py` is applied to
+the customer_reply afterwards.
 """
 
 from __future__ import annotations
@@ -22,7 +24,6 @@ _PIN_NOTE_BN = "অনুগ্রহ করে কারো সাথে আপ
 
 @dataclass(frozen=True)
 class ReplyTemplate:
-    agent_summary: str  # English, may use {ref}
     next_action: str  # English, may use {ref}
     customer_reply_en: str  # may use {ref}
     customer_reply_bn: str  # may use {ref}
@@ -30,7 +31,6 @@ class ReplyTemplate:
 
 CASE_TEMPLATES: dict[CaseType, ReplyTemplate] = {
     CaseType.wrong_transfer: ReplyTemplate(
-        agent_summary="Customer reports a wrong transfer ({ref}). Routed to dispute resolution for review.",
         next_action="Verify {ref} with the customer and initiate the wrong-transfer dispute workflow per policy.",
         customer_reply_en=(
             "We have noted your concern about {ref}. Our dispute resolution team will review the case "
@@ -42,7 +42,6 @@ CASE_TEMPLATES: dict[CaseType, ReplyTemplate] = {
         ),
     ),
     CaseType.payment_failed: ReplyTemplate(
-        agent_summary="Customer reports a failed payment with a possible balance deduction ({ref}). Routed to payments operations.",
         next_action="Investigate the ledger status of {ref}; if the balance was deducted on a failed payment, initiate the standard reversal flow.",
         customer_reply_en=(
             "We have noted that {ref} may have caused an unexpected balance deduction. Our payments team "
@@ -55,7 +54,6 @@ CASE_TEMPLATES: dict[CaseType, ReplyTemplate] = {
         ),
     ),
     CaseType.refund_request: ReplyTemplate(
-        agent_summary="Customer requests a refund ({ref}); not a service failure. Routed to customer support.",
         next_action="Explain that refund eligibility depends on the merchant's policy and guide the customer to contact the merchant.",
         customer_reply_en=(
             "Thank you for reaching out. Refund eligibility for {ref} depends on the merchant's own policy. "
@@ -67,7 +65,6 @@ CASE_TEMPLATES: dict[CaseType, ReplyTemplate] = {
         ),
     ),
     CaseType.duplicate_payment: ReplyTemplate(
-        agent_summary="Customer reports a duplicate payment ({ref}). Routed to payments operations for biller verification.",
         next_action="Verify the duplicate with payments operations; if the biller confirms a single charge, initiate reversal of the duplicate.",
         customer_reply_en=(
             "We have noted the possible duplicate payment for {ref}. Our payments team will verify it with "
@@ -79,7 +76,6 @@ CASE_TEMPLATES: dict[CaseType, ReplyTemplate] = {
         ),
     ),
     CaseType.merchant_settlement_delay: ReplyTemplate(
-        agent_summary="Merchant reports a delayed settlement ({ref}). Routed to merchant operations.",
         next_action="Check the settlement batch status with merchant operations and communicate a revised ETA if it is delayed.",
         customer_reply_en=(
             "We have noted your concern about {ref}. Our merchant operations team will check the settlement "
@@ -91,7 +87,6 @@ CASE_TEMPLATES: dict[CaseType, ReplyTemplate] = {
         ),
     ),
     CaseType.agent_cash_in_issue: ReplyTemplate(
-        agent_summary="Customer reports a cash-in not reflected in their balance ({ref}). Routed to agent operations.",
         next_action="Investigate the status of {ref} with agent operations and resolve within the standard cash-in SLA.",
         customer_reply_en=(
             "We have noted your concern about {ref}. Our agent operations team will verify it promptly and "
@@ -103,7 +98,6 @@ CASE_TEMPLATES: dict[CaseType, ReplyTemplate] = {
         ),
     ),
     CaseType.phishing_or_social_engineering: ReplyTemplate(
-        agent_summary="Customer reports a suspected phishing or social-engineering attempt. Escalated to the fraud risk team.",
         next_action="Escalate to the fraud risk team, confirm the company never asks for OTP, and log the reported contact for fraud-pattern analysis.",
         customer_reply_en=(
             "Thank you for reaching out before sharing any information. We never ask for your PIN, OTP, or "
@@ -117,7 +111,6 @@ CASE_TEMPLATES: dict[CaseType, ReplyTemplate] = {
         ),
     ),
     CaseType.other: ReplyTemplate(
-        agent_summary="Vague complaint with insufficient detail to identify a transaction. Routed to customer support.",
         next_action="Ask the customer for specific details: transaction ID, amount, what went wrong, and the approximate time.",
         customer_reply_en=(
             "Thank you for reaching out. To help you faster, please provide the transaction ID, the amount "
@@ -132,18 +125,83 @@ CASE_TEMPLATES: dict[CaseType, ReplyTemplate] = {
 
 # Used when a money case is recognized but no single transaction could be pinned.
 CLARIFICATION = ReplyTemplate(
-    agent_summary="Complaint could not be matched to a specific transaction; customer clarification needed.",
     next_action="Ask the customer for the transaction ID, or the recipient and amount, to identify the correct transaction before proceeding.",
     customer_reply_en=(
-        "Thank you for reaching out. We could not identify the exact transaction from the details provided. "
-        "Could you provide the transaction ID, or the recipient's number and amount, so we can look into it? "
-        + _PIN_NOTE_EN
+        "Thank you for reaching out. We see more than one transaction that could match your complaint. "
+        "Could you provide the transaction ID, or the recipient's number and amount, so we can identify "
+        "the right one? " + _PIN_NOTE_EN
     ),
     customer_reply_bn=(
-        "যোগাযোগ করার জন্য ধন্যবাদ। প্রদত্ত তথ্য থেকে আমরা সঠিক লেনদেনটি শনাক্ত করতে পারিনি। অনুগ্রহ করে "
-        "লেনদেন আইডি অথবা প্রাপকের নম্বর ও পরিমাণ জানালে আমরা বিষয়টি দেখতে পারব। " + _PIN_NOTE_BN
+        "যোগাযোগ করার জন্য ধন্যবাদ। আপনার অভিযোগের সাথে মেলে এমন একাধিক লেনদেন আমরা দেখতে পাচ্ছি। সঠিকটি "
+        "শনাক্ত করতে অনুগ্রহ করে লেনদেন আইডি অথবা প্রাপকের নম্বর ও পরিমাণ জানান। " + _PIN_NOTE_BN
     ),
 )
+
+
+# --------------------------------------------------------------------------- #
+# agent_summary (English, agent-facing) — assembled from facts, not a template.
+# --------------------------------------------------------------------------- #
+# Lead sentence per case for the standard money cases.
+_AGENT_LEAD: dict[CaseType, str] = {
+    CaseType.wrong_transfer: "Customer reports a wrong transfer.",
+    CaseType.payment_failed: "Customer reports a failed payment with a possible balance deduction.",
+    CaseType.refund_request: "Customer requests a refund; this is not a service failure.",
+    CaseType.duplicate_payment: "Customer reports a duplicate payment.",
+    CaseType.merchant_settlement_delay: "Merchant reports a delayed settlement.",
+    CaseType.agent_cash_in_issue: "Customer reports a cash-in that is not reflected in their balance.",
+}
+_AGENT_PHISHING = "Customer reports a suspected phishing or social-engineering attempt; no credentials were shared."
+_AGENT_OTHER = "Vague complaint with insufficient detail to identify a transaction."
+_AGENT_AMBIGUOUS = "Complaint matched multiple plausible transactions; the relevant one cannot be determined without clarification."
+
+
+def _format_amount(amount: float) -> str:
+    return f"{int(amount):,}"
+
+
+def _transaction_clause(relevant_transaction_id: str | None, relevant_amount: float | None) -> str:
+    if not relevant_transaction_id:
+        return "No matching transaction was identified in the provided history."
+    if relevant_amount is None:
+        return f"Identified transaction {relevant_transaction_id}."
+    return f"Identified transaction {relevant_transaction_id} ({_format_amount(relevant_amount)} BDT)."
+
+
+def build_agent_summary(
+    case_type: CaseType,
+    verdict: EvidenceVerdict,
+    relevant_transaction_id: str | None,
+    relevant_amount: float | None,
+) -> str:
+    """Factual one/two-sentence summary for the support agent (always English).
+
+    `relevant_amount` is the amount of the matched transaction (not the largest in
+    history), so the figure quoted always belongs to the transaction named.
+    """
+    if case_type == CaseType.phishing_or_social_engineering:
+        return _AGENT_PHISHING
+    if case_type == CaseType.other:
+        return _AGENT_OTHER
+    if _is_ambiguous(case_type, verdict, relevant_transaction_id):
+        return _AGENT_AMBIGUOUS
+
+    lead = _AGENT_LEAD.get(case_type, _AGENT_OTHER)
+    txn_clause = _transaction_clause(relevant_transaction_id, relevant_amount)
+    return f"{lead} {txn_clause} Evidence verdict: {verdict.value}."
+
+
+# --------------------------------------------------------------------------- #
+# Composition
+# --------------------------------------------------------------------------- #
+def _is_ambiguous(
+    case_type: CaseType,
+    verdict: EvidenceVerdict,
+    relevant_transaction_id: str | None,
+) -> bool:
+    """A recognized money case where no single transaction could be pinned."""
+    if case_type in (CaseType.phishing_or_social_engineering, CaseType.other):
+        return False
+    return verdict == EvidenceVerdict.insufficient_data and relevant_transaction_id is None
 
 
 def _reference_phrases(relevant_transaction_id: str | None) -> tuple[str, str]:
@@ -158,13 +216,11 @@ def _select_template(
     verdict: EvidenceVerdict,
     relevant_transaction_id: str | None,
 ) -> ReplyTemplate:
-    # Phishing and vague cases have their own dedicated wording.
     if case_type == CaseType.phishing_or_social_engineering:
         return CASE_TEMPLATES[CaseType.phishing_or_social_engineering]
     if case_type == CaseType.other:
         return CASE_TEMPLATES[CaseType.other]
-    # A recognized money case with no pinned transaction → ask to clarify.
-    if verdict == EvidenceVerdict.insufficient_data and relevant_transaction_id is None:
+    if _is_ambiguous(case_type, verdict, relevant_transaction_id):
         return CLARIFICATION
     return CASE_TEMPLATES.get(case_type, CASE_TEMPLATES[CaseType.other])
 
@@ -173,6 +229,7 @@ def compose(
     case_type: CaseType,
     verdict: EvidenceVerdict,
     relevant_transaction_id: str | None,
+    relevant_amount: float | None,
     language: str,
 ) -> dict:
     """Build the three text fields for the response (reply not yet safety-filtered)."""
@@ -185,7 +242,7 @@ def compose(
         customer_reply = template.customer_reply_en.format(ref=ref_en)
 
     return {
-        "agent_summary": template.agent_summary.format(ref=ref_en),
+        "agent_summary": build_agent_summary(case_type, verdict, relevant_transaction_id, relevant_amount),
         "recommended_next_action": template.next_action.format(ref=ref_en),
         "customer_reply": customer_reply,
     }

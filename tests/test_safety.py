@@ -92,6 +92,18 @@ def test_refund_case_makes_no_refund_promise():
     assert reply_is_safe(body["customer_reply"])
 
 
+def test_agent_summary_quotes_the_matched_transaction_amount():
+    # SAMPLE-01: matched TXN-9101 is 5,000; history also has a 10,000 cash-in.
+    # The summary must quote 5,000 (the matched txn), never 10,000.
+    case = next(c for c in load_cases() if c["id"] == "SAMPLE-01")
+    body = analyze(case["input"])
+    summary = body["agent_summary"]
+    assert "TXN-9101" in summary
+    assert "5,000" in summary
+    assert "10,000" not in summary
+    assert "consistent" in summary
+
+
 # --------------------------------------------------------------------------- #
 # Adversarial / prompt-injection inputs must still produce a safe reply.
 # --------------------------------------------------------------------------- #
