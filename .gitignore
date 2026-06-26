@@ -1,6 +1,9 @@
 # --- Provided challenge documents (reference only, not part of the solution) ---
 *.pdf
 
+# --- Internal working docs (not part of the public deliverable) ---
+PLAN.md
+
 # --- Python ---
 __pycache__/
 *.py[cod]
@@ -21,6 +24,9 @@ dist/
 .env
 .env.local
 .env.*.local
+
+# --- Claude Code settings (local tooling, not part of the submission) ---
+.claude/
 
 # --- OS / editor ---
 .DS_Store
