@@ -1,12 +1,3 @@
-"""Application entry point.
-
-    uvicorn app.main:app --host 0.0.0.0 --port 8000
-
-Wires the two required endpoints and installs a global exception handler so the
-service returns a controlled, non-sensitive 500 instead of crashing or leaking
-stack traces / secrets (a hard requirement in the spec).
-"""
-
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 

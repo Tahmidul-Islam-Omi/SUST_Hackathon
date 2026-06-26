@@ -1,15 +1,9 @@
-"""Orchestrator — the single entry point Person B owns.
+"""Orchestrator. The route calls only `analyze_ticket(request)`, which runs the
+three stages and assembles the response:
 
-The route calls only `analyze_ticket(request)`. This function ties the three
-logic stages together and assembles the final response:
-
-    1. reasoning.investigate(...)  -> relevant_transaction_id, evidence_verdict
-    2. classify.classify(...)      -> case_type, department, severity, review flag
-    3. safety.build_replies(...)   -> agent_summary, next_action, SAFE customer_reply
-
-NOTE: right now every stage returns a safe, schema-valid STUB so the whole app
-runs and deploys today. Person B fills in the real logic stage by stage
-(Phase 3 reasoning, then Phase 4 safety) without ever touching the route layer.
+    1. reasoning.investigate  -> relevant_transaction_id, evidence_verdict
+    2. classify.classify      -> case_type, department, severity, review flag
+    3. safety.build_replies   -> agent_summary, next_action, safe customer_reply
 """
 
 from __future__ import annotations

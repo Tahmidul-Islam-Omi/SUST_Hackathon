@@ -1,14 +1,4 @@
-"""All enums for the QueueStorm Investigator API.
-
-OUTPUT enums (EvidenceVerdict, CaseType, Severity, Department) MUST match the
-problem statement exactly — wrong case/spelling is scored as a schema violation.
-These are used strictly on the response model.
-
-INPUT-side enums (Language, Channel, ... TransactionStatus) are listed here for
-reference and for use inside the reasoning logic. The request model itself keeps
-these fields lenient (plain strings) so unusual/edge input never 422s the whole
-request — robustness matters for the hidden malformed-input tests.
-"""
+"""Enum values for the API. Output enums are exact; input enums are reference only."""
 
 from enum import Enum
 

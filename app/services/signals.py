@@ -1,12 +1,9 @@
-"""Shared signal extraction from the complaint text.
+"""Shared, deterministic helpers for reading the complaint text:
+  - parse_amounts(text)     -> set of BDT amounts mentioned (Bangla digits ok)
+  - detect_language(text)   -> "en" | "bn" | "mixed"
+  - detect_case_type(text)  -> CaseType (keyword + transaction driven)
 
-Pure, deterministic helpers used by BOTH reasoning and classify so they always
-agree on what the complaint says. No I/O, no model calls.
-
-Provides:
-  - parse_amounts(text)        -> set of BDT amounts mentioned (Bangla digits ok)
-  - detect_language(text, ...) -> "en" | "bn" | "mixed"
-  - detect_case_type(text, ..) -> CaseType   (keyword + transaction driven)
+Used by both reasoning and classify so they always agree. No I/O, no model calls.
 """
 
 from __future__ import annotations

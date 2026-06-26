@@ -1,14 +1,4 @@
-"""Response schema for POST /analyze-ticket.
-
-This is the frozen contract. OUTPUT enums are STRICT — FastAPI validates the
-response against this model, so a wrong enum value surfaces as an error during
-development rather than silently losing schema points at judging time.
-
-Required fields (10): ticket_id, relevant_transaction_id, evidence_verdict,
-case_type, severity, department, agent_summary, recommended_next_action,
-customer_reply, human_review_required.
-Optional fields (2): confidence, reason_codes.
-"""
+"""Response schema for POST /analyze-ticket. 10 required fields, 2 optional; output enums are strict."""
 
 from __future__ import annotations
 

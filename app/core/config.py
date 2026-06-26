@@ -1,8 +1,4 @@
-"""Runtime configuration loaded from environment variables / .env.
-
-Secrets are read from the environment only — never hard-coded, never committed.
-The service is fully functional with all defaults (no LLM key needed).
-"""
+"""Runtime configuration loaded from environment variables / .env. """
 
 from __future__ import annotations
 
