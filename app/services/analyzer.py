@@ -16,21 +16,20 @@ from __future__ import annotations
 
 from app.schemas.request import AnalyzeTicketRequest
 from app.schemas.response import AnalyzeTicketResponse
-from app.services import classify, reasoning, safety
+from app.services import classify, reasoning, safety, signals
 
 
 def analyze_ticket(request: AnalyzeTicketRequest) -> AnalyzeTicketResponse:
     transactions = request.transaction_history or []
 
+    # Detect case_type once so reasoning and classify can't disagree.
+    case_type = signals.detect_case_type(request.complaint, transactions)
+
     # Stage 1 — evidence reasoning (Phase 3).
-    investigation = reasoning.investigate(request.complaint, transactions)
+    investigation = reasoning.investigate(request.complaint, transactions, case_type)
 
     # Stage 2 — classification & routing (Phase 3).
-    classification = classify.classify(
-        request.complaint,
-        transactions,
-        investigation["relevant_transaction_id"],
-    )
+    classification = classify.classify(case_type, transactions, investigation)
 
     # Stage 3 — safe, agent-ready text (Phase 4).
     replies = safety.build_replies(request, investigation, classification)
