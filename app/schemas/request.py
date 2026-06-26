@@ -1,13 +1,4 @@
-"""Request schema for POST /analyze-ticket.
-
-Design choice: input fields are intentionally LENIENT.
-  - Only `ticket_id` and `complaint` are required (per the spec).
-  - Optional context fields are plain strings, not enums, and transaction
-    fields are all optional — so an unusual value in the hidden tests never
-    rejects an otherwise-analyzable ticket. The reasoning layer handles
-    missing/odd values gracefully.
-  - extra="ignore" means unexpected fields in the body won't break parsing.
-"""
+"""Request schema for POST /analyze-ticket. Input is lenient so odd values don't reject the ticket."""
 
 from __future__ import annotations
 

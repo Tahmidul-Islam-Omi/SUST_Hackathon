@@ -1,25 +1,14 @@
-"""Evidence reasoning — the 35-point core. OWNER: Person B (Phase 3).
+"""Evidence reasoning. Decides which transaction the complaint refers to and
+whether the evidence backs the claim, returning a dict with
+relevant_transaction_id, evidence_verdict, confidence and reason_codes.
 
-Decides WHICH transaction the complaint refers to and whether the evidence backs
-the claim, without ever guessing when the data is ambiguous.
-
-Return contract (dict):
-    {
-        "relevant_transaction_id": str | None,
-        "evidence_verdict": EvidenceVerdict,
-        "confidence": float,            # 0..1
-        "reason_codes": list[str],
-    }
-
-Core rules (calibrated against the 10 public sample cases):
+Key rules:
   - Match transactions by the amount(s) mentioned in the complaint.
-  - relevant_transaction_id = None when nothing matches, the complaint is vague,
-    OR several transactions to DIFFERENT recipients plausibly match (don't guess).
-  - duplicate_payment: two+ identical (same amount & counterparty) payments ARE
-    the evidence → point at the later one, verdict consistent.
-  - wrong_transfer where the matched recipient also appears in other history
-    entries → established recipient → verdict inconsistent (claim contradicted).
-  - phishing / empty history → insufficient_data with a null transaction.
+  - relevant_transaction_id is None when nothing matches, the complaint is vague,
+    or several transactions to different recipients plausibly match (don't guess).
+  - duplicate_payment: two+ identical payments point at the later one (consistent).
+  - wrong_transfer to an already-seen recipient is inconsistent (claim contradicted).
+  - phishing / empty history -> insufficient_data with a null transaction.
 """
 
 from __future__ import annotations

@@ -1,18 +1,6 @@
-"""Case routing, severity & escalation. OWNER: Person B (Phase 3).
-
-Takes the already-detected case_type plus the investigation result and decides:
-  - department  (fixed routing table from the problem statement taxonomy)
-  - severity    (phishing=critical, money-stuck=high, ...)
-  - human_review_required
-
-Return contract (dict):
-    {
-        "case_type": CaseType,
-        "department": Department,
-        "severity": Severity,
-        "human_review_required": bool,
-    }
-"""
+"""Case routing, severity and escalation. Takes the detected case_type plus the
+investigation result and returns a dict with case_type, department, severity and
+human_review_required (department via a fixed routing table)."""
 
 from __future__ import annotations
 

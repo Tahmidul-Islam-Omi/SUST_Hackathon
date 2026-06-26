@@ -1,10 +1,4 @@
-"""POST /analyze-ticket — the main endpoint.
-
-The route is thin on purpose: it validates the request (via the schema),
-delegates ALL logic to the analyzer service, and returns the validated
-response. Any unexpected error is caught by the global 500 handler in main.py
-so the service never crashes or leaks internals.
-"""
+"""POST /analyze-ticket — thin route: validate request, delegate to analyzer, return validated response."""
 
 from fastapi import APIRouter
 
