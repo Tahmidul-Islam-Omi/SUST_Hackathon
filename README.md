@@ -170,8 +170,13 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 ```bash
 docker build -t queuestorm .
-docker run -p 8000:8000 --env-file .env queuestorm
+docker run -p 8000:8000 queuestorm
 ```
+
+The service then responds on <http://localhost:8000>. No environment file is
+needed — the service runs with defaults and requires no API key. To enable the
+optional LLM layer, pass variables explicitly, e.g.
+`docker run -p 8000:8000 -e LLM_ENABLED=true -e OPENAI_API_KEY=... queuestorm`.
 
 The image is built on `python:3.12-slim`, runs on CPU only, binds `0.0.0.0`, and
 reads secrets from environment variables (never baked into the image).
@@ -314,9 +319,19 @@ Request flow: `routes/analyze.py` → `services/analyzer.py` →
 
 ## Deployment
 
-- **Live URL:** _to be added once deployed_ — a public base URL exposing
-  `/health` and `/analyze-ticket`.
-- **Docker:** build and run with the commands in the Setup section.
-- **Local:** the run command above brings the service up on port 8000.
+- **Primary — Live URL:** <https://sust-hackathon-five.vercel.app> — public base
+  URL exposing `/health` and `/analyze-ticket` (deployed on Vercel).
+- **Re-deploy fallback (runbook) — Docker:** if the live URL is unreachable, the
+  service can be rebuilt and run from this repository with no extra setup:
+
+  ```bash
+  docker build -t queuestorm .
+  docker run -p 8000:8000 queuestorm
+  ```
+
+  It then serves `/health` and `/analyze-ticket` on port 8000. No `.env`, API
+  key, GPU, or external dependency is required.
+- **Local:** alternatively, `uvicorn app.main:app --host 0.0.0.0 --port 8000`
+  after installing `requirements.txt`.
 
 No login or private network access is required to reach the endpoints.
